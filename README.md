@@ -30,6 +30,7 @@ j -c
 ## Behavior
 
 - Matches only the leaf directory name
+- Prefers a match on the last token of the leaf name before falling back to older recent-first matches
 - Most recently visited directory wins
 - `cd`, `chdir`, `pushd`, `popd` are tracked after install
 

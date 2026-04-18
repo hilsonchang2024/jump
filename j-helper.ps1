@@ -50,6 +50,37 @@ function Resolve-FullPath {
     }
 }
 
+function Get-MatchRank {
+    param(
+        [string]$Leaf,
+        [string]$Query
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Leaf) -or [string]::IsNullOrWhiteSpace($Query)) {
+        return -1
+    }
+
+    $tokens = @($Leaf -split '[-_.\s]+' | Where-Object { $_ })
+    if ($tokens.Count -gt 0) {
+        $last = $tokens[-1]
+        if ($last.IndexOf($Query, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            return 3
+        }
+
+        foreach ($token in $tokens) {
+            if ($token.IndexOf($Query, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                return 2
+            }
+        }
+    }
+
+    if ($Leaf.IndexOf($Query, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+        return 1
+    }
+
+    return -1
+}
+
 switch ($Action) {
     'find' {
         $needle = $Query
@@ -57,12 +88,23 @@ switch ($Action) {
             exit 0
         }
 
+        $bestItem = $null
+        $bestRank = -1
+
         foreach ($item in Get-HistoryList -Path $HistoryPath) {
             $leaf = Split-Path -Leaf $item
-            if ($leaf.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
-                Write-Output ("TARGET|{0}" -f $item)
-                break
+            $rank = Get-MatchRank -Leaf $leaf -Query $needle
+            if ($rank -gt $bestRank) {
+                $bestRank = $rank
+                $bestItem = $item
+                if ($bestRank -eq 3) {
+                    break
+                }
             }
+        }
+
+        if ($bestRank -ge 0 -and $bestItem) {
+            Write-Output ("TARGET|{0}" -f $bestItem)
         }
     }
 
